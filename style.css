@@ -223,14 +223,14 @@ html, body {
 }
 
 /* ---------- TILE PALETTE ---------- */
-#tilePaletteGroup {
+#Group {
   border-right: none;
 }
 
 #tilePalette {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
+  /* overflow-x: auto; */
   max-width: 46vw;
   padding: 2px 0;
 }
