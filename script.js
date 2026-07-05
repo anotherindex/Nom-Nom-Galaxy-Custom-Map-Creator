@@ -1331,11 +1331,11 @@ No - things like single mushrooms, Kabochasers (the pumpkins), Stabgrass, and mo
 Not currently. These maps can only be played as S.O.O.P. Simulations - essentially free-play, where the goal is whatever you set for yourself. Try challenging yourself to something like earning 5000 gold within a set number of days, or defeating every enemy without dying once.
 
 **I found a bug with the Map Creator, what should I do?**
-Report it on the [GitHub page](https://github.com/anotherindex/NomNomGalaxyCustomMapCreator), or send a message on Discord to **@anotherindex** (Index) - usually reachable on the Nom Nom Galaxy Discord or the Q-Games Ltd. Discord (in the #classic-q-games channel).
+Report it on the [GitHub page](https://github.com/anotherindex/Nom-Nom-Galaxy-Custom-Map-Creator), or send a message on Discord to **@anotherindex** (Index) - usually reachable on the Nom Nom Galaxy Discord or the Q-Games Ltd. Discord (in the #classic-q-games channel).
 
 ---
 
-For more detailed information, visit the [GitHub page](https://github.com/anotherindex/NomNomGalaxyCustomMapCreator).
+For more detailed information, visit the [GitHub page](https://github.com/anotherindex/Nom-Nom-Galaxy-Custom-Map-Creator).
 
 *- Index*`;
 
