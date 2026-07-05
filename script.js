@@ -1303,11 +1303,11 @@ Launch Nom Nom Galaxy, go to **Corporate Conquest** (the main story mode), and n
 *Note: you can add new folders and maps while the game is running, no restart needed. You cannot, however, edit any folders or maps the game has already detected and loaded during that session.*
 
 ### Advanced Map Export (optional)
-Advanced Map Export allows you to create the folder and map data more easily without the hassle of manually creating/renaming files.
-If you are using a Chromium-based browser like Google Chrome or Microsoft Edge you can enable the "Advanced Map Export" feature in the Settings. The Setting button can be found next to the "Load Map" button.
+Advanced Map Export allows you to create the folder and map data more easily without the hassle of manually creating/renaming files. 
+If you are using a Chromium-based browser like Google Chrome or Microsoft Edge you can enable the "Advanced Map Export" feature in the Settings. The Setting button can be found next to the "Load Map" button. 
 If enabled, the "Export Map" button will now ask you for the location of your Nom Nom Galaxy "custom_planets" folder. 
-(The easiest way to do that is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files". Then create a shortcut to that folder on, for example, your Desktop for easy access.)
-Once you selected your "custom_planets" during export, the browser will prompt you if you want the page to allow editing files on your computer. This is generally a prompt you should not accept, but if you made it far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file read to be loaded from inside Nom Nom Galaxy.
+(The easiest way to do that is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files". Then create a shortcut to that folder on, for example, your Desktop for easy access.) 
+Once you selected your "custom_planets" folder during export, the browser will prompt you whether you want to allow the page to edit files on your computer. This is generally a prompt you should not accept, but if you made it far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file ready to be loaded from inside Nom Nom Galaxy.
 
 ## III. Tips, tricks and more
 
