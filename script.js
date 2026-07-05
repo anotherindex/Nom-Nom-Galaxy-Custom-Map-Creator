@@ -24,7 +24,7 @@ const ELEMENT_DEFS = [
   { name: "Dirt",       hex: "#000000" },
   { name: "Stone",      hex: "#808080" },
   { name: "Water",      hex: "#0000ff" },
-  { name: "Crytal",     hex: "#ff0000" },
+  { name: "Crystal",     hex: "#ff0000" },
   { name: "Floppy",     hex: "#004080" },
   { name: "Matter",     hex: "#008040" },
   { name: "Oxygen",     hex: "#ff00ff" },
@@ -136,7 +136,7 @@ const ELEMENT_OFFSETS = {
   1: { x: 0, y: 0 },   // Dirt
   2: { x: 0, y: 0 },   // Stone
   3: { x: 0, y: 0 },   // Water
-  4: { x: 0, y: 0 },   // Crytal
+  4: { x: 0, y: 0 },   // Crystal
   5: { x: 0, y: 0 },   // Floppy
   6: { x: 0, y: 0 },   // Matter
   7: { x: 0, y: 0 },   // Oxygen
