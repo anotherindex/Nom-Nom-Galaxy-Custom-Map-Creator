@@ -1,4 +1,4 @@
-# Nom Nom Galaxy Custom Map Creator v0.8
+# Nom Nom Galaxy Custom Map Creator v0.9
 A web-based tool to create custom maps for the video game [Nom Nom Galaxy](https://steamcommunity.com/app/226100/discussions/0/135514649162625055/) from PixelJunk™    
 ## You can use this tool online in your browser, simply **[>click here<](https://anotherindex.github.io/Nom-Nom-Galaxy-Custom-Map-Creator/index.html)**
 
@@ -19,6 +19,8 @@ A web-based tool to create custom maps for the video game [Nom Nom Galaxy](https
 - *Right-click* with any drawing tool erases instead of painting.
 - Hold *Space* and drag to pan the canvas from any tool.
 - Mouse wheel scrolls to zoom in and out.
+- Use **Map Gallery** (top right) to browse a small gallery of example maps, load one straight into the editor to see how it's built, or download its .png as a starting point.
+- Use **Change Map Size** (top right) to grow, shrink, or crop the canvas from any edge without starting over.
 
 The **Select tool (H)** is a powerful tool that lets you copy, cut, and paste areas of the map:
 
@@ -49,11 +51,13 @@ Launch Nom Nom Galaxy, go to **Corporate Conquest** (the main story mode), and n
 *Note: you can add new folders and maps while the game is running, no restart needed. You cannot, however, edit any folders or maps the game has already detected and loaded during that session.*
 
 ### Advanced Map Export (optional)
-Advanced Map Export allows you to create the folder and map data more easily without the hassle of manually creating/renaming files.   
+Advanced Map Export allows you to create the folder and map data more easily without the hassle of manually creating/renaming files.    
 If you are using a Chromium-based browser like Google Chrome or Microsoft Edge you can enable the "Advanced Map Export" feature in the Settings. The Setting button can be found next to the "Load Map" button.    
 If enabled, the "Export Map" button will now ask you for the location of your Nom Nom Galaxy "custom_planets" folder.    
-(The easiest way to do that is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files". Then create a shortcut to that folder on, for example, your Desktop for easy access.)    
-Once you selected your "custom_planets" folder during export, the browser will prompt you whether you want to allow the page to edit files on your computer. This is generally a prompt you should not accept, but if you made it far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file ready to be loaded from inside Nom Nom Galaxy.
+(The easiest way to find the location of this folder is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files".)    
+Once you selected your "custom_planets" folder during export, the browser will prompt you whether you want to allow the page to edit files on your computer. This is generally a prompt you should not accept, but if you made it this far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file ready to be loaded from inside Nom Nom Galaxy.   
+
+The tool remembers which folder you picked, so the next time you export you normally won't have to browse to it again - you'll just get a quick "allow access" confirmation (this can reset if you restart your browser, clear site data, or switch machines, in which case you'll be asked to browse to the folder once more).
 
 ## III. Tips, tricks and more
 
