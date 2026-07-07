@@ -17,7 +17,7 @@
     <div id="optionsPanel" class="panel">
       <!--  <div class="panelTitle">Map</div>-->
       <div class="mapNameRow">
-        <label for="mapNameInput" class="mapNameLabel">NNG Custom Map Creator v0.8 - Map Name:</label>
+        <label for="mapNameInput" class="mapNameLabel">NNG Custom Map Creator v0.9 - Map Name:</label>
         <input type="text" id="mapNameInput" class="mapNameInput" value="My Custom NNG Map" maxlength="80" spellcheck="false" autocomplete="off">
       </div>
       <div class="panelRow">
@@ -75,9 +75,13 @@
 
     </div>
 
-    <!-- Far-right: Info / Guide -->
+    <!-- Far-right: Gallery / Size / Info / Guide -->
     <div id="infoPanel" class="panel">
-      <button id="btnInfoGuide" class="btn" title="Open the guide">Info/Guide</button>
+      <div class="panelRow">
+        <button id="btnMapGallery" class="btn" title="Browse example maps">Map Gallery</button>
+        <button id="btnMapSize" class="btn" title="Grow, shrink, or crop the canvas">Change Map Size</button>
+        <button id="btnInfoGuide" class="btn" title="Open the guide">Info/Guide</button>
+      </div>
     </div>
   </div>
 
@@ -131,11 +135,74 @@
       <label><input type="checkbox" id="settingAdvancedExport"> Use Advanced Map Export (experimental/not supported in every browser)</label>
     </div>
     <div class="modalRow settingsNote" id="advancedExportNote">
-      When enabled, Export Map asks you to pick your <code>custom_planets</code> folder and saves the map directly into a matching subfolder there, instead of downloading a plain .png. Currently only works in Chromium-based browsers (Chrome, Edge).
+      When enabled, Export Map asks you to pick your <code>custom_planets</code> folder and saves the map directly into a matching subfolder there, instead of downloading a plain .png. Currently only works in Chromium-based browsers (Chrome, Edge). The folder is remembered after the first time, so you normally won't need to browse to it again - just a quick "allow access" confirmation.
     </div>
     <div class="modalRow settingsNote">More settings will be added here in the future.</div>
     <div class="modalButtons">
       <button id="btnSettingsClose" class="btn primary">Close</button>
+    </div>
+  </div>
+
+  <div id="modalMapSize" class="modal modalMapSize hidden">
+    <h2>Change Map Size</h2>
+    <div class="modalRow settingsNote">
+      Adjust any edge independently: positive numbers add empty space, negative numbers crop. The center fields show (and can directly set) the resulting total size.
+    </div>
+
+    <div class="sizeGrid">
+      <div class="sizeCellCorner"></div>
+      <div class="sizeCellTop">
+        <div class="sizeSideControl">
+          <button class="btn small sizeMinus" data-side="top" title="Decrease top by 10">&minus;</button>
+          <input type="number" id="sizeTopInput" class="numberInput sizeSideInput" value="0" title="Pixels to add (+) or remove (-) at the top">
+          <button class="btn small sizePlus" data-side="top" title="Increase top by 10">+</button>
+        </div>
+      </div>
+      <div class="sizeCellCorner"></div>
+
+      <div class="sizeCellLeft">
+        <div class="sizeSideControl">
+          <button class="btn small sizeMinus" data-side="left" title="Decrease left by 10">&minus;</button>
+          <input type="number" id="sizeLeftInput" class="numberInput sizeSideInput" value="0" title="Pixels to add (+) or remove (-) on the left">
+          <button class="btn small sizePlus" data-side="left" title="Increase left by 10">+</button>
+        </div>
+      </div>
+      <div class="sizeCellCenter">
+        <div id="sizePseudoCanvas" class="sizePseudoCanvas">
+          <div class="sizeDims">
+            <input type="number" id="sizeWidthInput" class="numberInput sizeDimInput" min="1" max="200000" title="Width (tiles)">
+            <span class="sizeDimsSep">&times;</span>
+            <input type="number" id="sizeHeightInput" class="numberInput sizeDimInput" min="1" max="200000" title="Height (tiles)">
+          </div>
+        </div>
+      </div>
+      <div class="sizeCellRight">
+        <div class="sizeSideControl">
+          <button class="btn small sizeMinus" data-side="right" title="Decrease right by 10">&minus;</button>
+          <input type="number" id="sizeRightInput" class="numberInput sizeSideInput" value="0" title="Pixels to add (+) or remove (-) on the right">
+          <button class="btn small sizePlus" data-side="right" title="Increase right by 10">+</button>
+        </div>
+      </div>
+
+      <div class="sizeCellCorner"></div>
+      <div class="sizeCellBottom">
+        <div class="sizeSideControl">
+          <button class="btn small sizeMinus" data-side="bottom" title="Decrease bottom by 10">&minus;</button>
+          <input type="number" id="sizeBottomInput" class="numberInput sizeSideInput" value="0" title="Pixels to add (+) or remove (-) at the bottom">
+          <button class="btn small sizePlus" data-side="bottom" title="Increase bottom by 10">+</button>
+        </div>
+      </div>
+      <div class="sizeCellCorner"></div>
+    </div>
+
+    <div class="modalRow">
+      <span id="sizeTotalInfo">New size: 0 x 0</span>
+    </div>
+    <div class="modalRow modalError hidden" id="sizeError">Note: width and height must each be at least 1 tile, and the total must not exceed the 200,000 tile limit.</div>
+
+    <div class="modalButtons">
+      <button id="btnMapSizeCancel" class="btn">Cancel</button>
+      <button id="btnMapSizeApply" class="btn primary">Apply</button>
     </div>
   </div>
 
@@ -145,6 +212,17 @@
       <button id="btnInfoGuideClose" class="btn small modalCloseX" title="Close">&times;</button>
     </div>
     <div id="guideContent" class="guideContent"><!-- rendered from GUIDE_MARKDOWN in script.js --></div>
+  </div>
+
+  <div id="modalMapGallery" class="modal modalBig hidden">
+    <div class="modalHeaderRow">
+      <h2>Map Gallery</h2>
+      <button id="btnMapGalleryClose" class="btn small modalCloseX" title="Close">&times;</button>
+    </div>
+    <div id="mapGalleryContent" class="mapGalleryContent">
+      <div id="mapGalleryStatus" class="galleryStatus">Loading gallery&hellip;</div>
+      <div id="mapGalleryList" class="mapGalleryList"><!-- rows generated by JS --></div>
+    </div>
   </div>
 
 </div>

@@ -24,7 +24,7 @@ const ELEMENT_DEFS = [
   { name: "Dirt",       hex: "#000000" },
   { name: "Stone",      hex: "#808080" },
   { name: "Water",      hex: "#0000ff" },
-  { name: "Crystal",     hex: "#ff0000" },
+  { name: "Crystal",    hex: "#ff0000" },
   { name: "Floppy",     hex: "#004080" },
   { name: "Matter",     hex: "#008040" },
   { name: "Oxygen",     hex: "#ff00ff" },
@@ -1258,7 +1258,7 @@ function renderMarkdown(md) {
 }
 
 const GUIDE_MARKDOWN = `# Nom Nom Galaxy Custom Map Creator
-*v0.8 - by @anotherindex and Claude... but mainly Claude lol*
+*v0.9 - by @anotherindex and Claude... but mainly Claude lol*
 
 A tool to create custom maps for the videogame **PixelJunk™ Nom Nom Galaxy** ([Steam page](https://store.steampowered.com/app/226100/PixelJunk_Nom_Nom_Galaxy/)).
 
@@ -1273,6 +1273,8 @@ A tool to create custom maps for the videogame **PixelJunk™ Nom Nom Galaxy** (
 - *Right-click* with any drawing tool erases instead of painting.
 - Hold *Space* and drag to pan the canvas from any tool.
 - Mouse wheel scrolls to zoom in and out.
+- Use **Map Gallery** (top right) to browse a small gallery of example maps, load one straight into the editor to see how it's built, or download its .png as a starting point.
+- Use **Change Map Size** (top right) to grow, shrink, or crop the canvas from any edge without starting over.
 
 The **Select tool (H)** is a powerful tool that lets you copy, cut, and paste areas of the map:
 
@@ -1306,8 +1308,10 @@ Launch Nom Nom Galaxy, go to **Corporate Conquest** (the main story mode), and n
 Advanced Map Export allows you to create the folder and map data more easily without the hassle of manually creating/renaming files. 
 If you are using a Chromium-based browser like Google Chrome or Microsoft Edge you can enable the "Advanced Map Export" feature in the Settings. The Setting button can be found next to the "Load Map" button. 
 If enabled, the "Export Map" button will now ask you for the location of your Nom Nom Galaxy "custom_planets" folder. 
-(The easiest way to do that is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files". Then create a shortcut to that folder on, for example, your Desktop for easy access.) 
-Once you selected your "custom_planets" folder during export, the browser will prompt you whether you want to allow the page to edit files on your computer. This is generally a prompt you should not accept, but if you made it far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file ready to be loaded from inside Nom Nom Galaxy.
+(The easiest way to find the location of this folder is to right-click Nom Nom Galaxy in your Steam library, select "Manage", then "Browse Local Files".) 
+Once you selected your "custom_planets" folder during export, the browser will prompt you whether you want to allow the page to edit files on your computer. This is generally a prompt you should not accept, but if you made it this far I think you know what you're doing. If you accept it, the Custom Map Creator will have created a folder and map file ready to be loaded from inside Nom Nom Galaxy.
+
+The tool remembers which folder you picked, so the next time you export you normally won't have to browse to it again - you'll just get a quick "allow access" confirmation (this can reset if you restart your browser, clear site data, or switch machines, in which case you'll be asked to browse to the folder once more).
 
 ## III. Tips, tricks and more
 
@@ -1347,6 +1351,8 @@ const modalOverlay = document.getElementById('modalOverlay');
 const modalNewMap = document.getElementById('modalNewMap');
 const modalSettings = document.getElementById('modalSettings');
 const modalInfoGuide = document.getElementById('modalInfoGuide');
+const modalMapGallery = document.getElementById('modalMapGallery');
+const modalMapSize = document.getElementById('modalMapSize');
 
 function openModal(modalEl) {
   modalOverlay.classList.remove('hidden');
@@ -1357,6 +1363,8 @@ function closeModals() {
   modalNewMap.classList.add('hidden');
   modalSettings.classList.add('hidden');
   modalInfoGuide.classList.add('hidden');
+  modalMapGallery.classList.add('hidden');
+  modalMapSize.classList.add('hidden');
 }
 modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModals(); });
 
@@ -1422,6 +1430,218 @@ document.getElementById('btnInfoGuide').addEventListener('click', () => {
   openModal(modalInfoGuide);
 });
 document.getElementById('btnInfoGuideClose').addEventListener('click', closeModals);
+
+document.getElementById('btnMapGallery').addEventListener('click', () => {
+  openModal(modalMapGallery);
+  loadMapGallery();
+});
+document.getElementById('btnMapGalleryClose').addEventListener('click', closeModals);
+
+/* =========================================================================
+   CHANGE MAP SIZE
+   Lets the user grow, shrink, or crop the canvas from any of its four
+   edges independently. Each side has its own signed delta - positive adds
+   empty space on that edge, negative crops it away. The center width/height
+   fields always mirror the resulting total, and can also be edited
+   directly: doing so is shorthand for adjusting the trailing edge on that
+   axis (right for width, bottom for height), leaving the opposite edge
+   (left/top) untouched.
+   ========================================================================= */
+const sizeTopInput = document.getElementById('sizeTopInput');
+const sizeRightInput = document.getElementById('sizeRightInput');
+const sizeBottomInput = document.getElementById('sizeBottomInput');
+const sizeLeftInput = document.getElementById('sizeLeftInput');
+const sizeWidthInput = document.getElementById('sizeWidthInput');
+const sizeHeightInput = document.getElementById('sizeHeightInput');
+const sizeTotalInfo = document.getElementById('sizeTotalInfo');
+const sizeErrorEl = document.getElementById('sizeError');
+const sizePseudoCanvasEl = document.getElementById('sizePseudoCanvas');
+const btnMapSizeApply = document.getElementById('btnMapSizeApply');
+
+// mapSizeBase = grid dimensions when the modal was opened; mapSizeDelta =
+// the four pending per-edge adjustments, reset to 0 every time it opens.
+const mapSizeBase = { w: 0, h: 0 };
+const mapSizeDelta = { top: 0, right: 0, bottom: 0, left: 0 };
+
+function openMapSizeModal() {
+  mapSizeBase.w = grid.cols;
+  mapSizeBase.h = grid.rows;
+  mapSizeDelta.top = 0;
+  mapSizeDelta.right = 0;
+  mapSizeDelta.bottom = 0;
+  mapSizeDelta.left = 0;
+  syncMapSizeSideInputs();
+  refreshMapSizeFromSides();
+}
+
+function syncMapSizeSideInputs() {
+  sizeTopInput.value = mapSizeDelta.top;
+  sizeRightInput.value = mapSizeDelta.right;
+  sizeBottomInput.value = mapSizeDelta.bottom;
+  sizeLeftInput.value = mapSizeDelta.left;
+}
+
+function computeMapSizeResult() {
+  const w = mapSizeBase.w + mapSizeDelta.left + mapSizeDelta.right;
+  const h = mapSizeBase.h + mapSizeDelta.top + mapSizeDelta.bottom;
+  const valid = Number.isFinite(w) && Number.isFinite(h) &&
+    w >= 1 && h >= 1 && w <= 200000 && h <= 200000 && (w * h) <= MAX_CELLS;
+  return { w, h, valid };
+}
+
+function renderMapSizeSummary(w, h, valid) {
+  updatePseudoCanvasShape(w, h);
+  const total = w * h;
+  sizeTotalInfo.textContent = Number.isFinite(total)
+    ? `New size: ${w} x ${h} (${total.toLocaleString()} / ${MAX_CELLS.toLocaleString()} tiles)`
+    : `New size: ${w} x ${h}`;
+  sizeErrorEl.classList.toggle('hidden', valid);
+  btnMapSizeApply.disabled = !valid;
+}
+
+// Full refresh: recompute from the four side deltas AND push the result
+// into the center width/height fields. Used whenever a side control
+// changes (typing or +/-), and when the modal first opens.
+function refreshMapSizeFromSides() {
+  const { w, h, valid } = computeMapSizeResult();
+  sizeWidthInput.value = w;
+  sizeHeightInput.value = h;
+  renderMapSizeSummary(w, h, valid);
+  return { w, h, valid };
+}
+
+// Partial refresh: recompute and update everything EXCEPT the width/height
+// fields themselves, so typing into them doesn't fight the user's cursor.
+function refreshMapSizeFromCenter() {
+  const { w, h, valid } = computeMapSizeResult();
+  renderMapSizeSummary(w, h, valid);
+  return { w, h, valid };
+}
+
+// Scales the little preview box to roughly match the map's aspect ratio,
+// clamped so it's never illegibly thin in either dimension.
+function updatePseudoCanvasShape(w, h) {
+  const maxBox = 120, minBox = 28;
+  if (!(w > 0) || !(h > 0)) {
+    sizePseudoCanvasEl.style.width = maxBox + 'px';
+    sizePseudoCanvasEl.style.height = maxBox + 'px';
+    return;
+  }
+  const ratio = w / h;
+  let boxW, boxH;
+  if (ratio >= 1) {
+    boxW = maxBox;
+    boxH = Math.max(minBox, Math.round(maxBox / ratio));
+  } else {
+    boxH = maxBox;
+    boxW = Math.max(minBox, Math.round(maxBox * ratio));
+  }
+  sizePseudoCanvasEl.style.width = boxW + 'px';
+  sizePseudoCanvasEl.style.height = boxH + 'px';
+}
+
+const sizeInputsBySide = { top: sizeTopInput, right: sizeRightInput, bottom: sizeBottomInput, left: sizeLeftInput };
+
+// Called when the user types directly into one of the four side inputs.
+// Deliberately does NOT write back into the side inputs themselves - only
+// the derived center width/height fields and summary change in response,
+// since each side's delta is independent of the others. Rewriting the
+// field the user is actively typing into would fight their cursor and,
+// worse, immediately erase a lone "-" before they can finish a negative
+// number - so incomplete states (empty, just "-") are simply skipped.
+function handleSideInputTyped(side, rawValue) {
+  if (rawValue === '' || rawValue == null) return;
+  const v = Math.round(Number(rawValue));
+  if (!Number.isFinite(v)) return;
+  mapSizeDelta[side] = v;
+  refreshMapSizeFromSides();
+}
+
+// Called by the +/- buttons, which - unlike typing - need to push the new
+// value into that side's own input since no keystroke does it for us.
+function bumpSideDelta(side, amount) {
+  mapSizeDelta[side] += amount;
+  sizeInputsBySide[side].value = mapSizeDelta[side];
+  refreshMapSizeFromSides();
+}
+
+Object.entries(sizeInputsBySide).forEach(([side, inputEl]) => {
+  inputEl.addEventListener('input', () => handleSideInputTyped(side, inputEl.value));
+});
+
+document.querySelectorAll('.sizePlus').forEach(btn => {
+  btn.addEventListener('click', () => bumpSideDelta(btn.dataset.side, 10));
+});
+document.querySelectorAll('.sizeMinus').forEach(btn => {
+  btn.addEventListener('click', () => bumpSideDelta(btn.dataset.side, -10));
+});
+
+// Editing the center fields directly is shorthand for adjusting the
+// trailing edge on that axis, leaving the opposite edge untouched.
+sizeWidthInput.addEventListener('input', () => {
+  const newW = Math.round(Number(sizeWidthInput.value));
+  if (!Number.isFinite(newW)) return;
+  mapSizeDelta.right = newW - mapSizeBase.w - mapSizeDelta.left;
+  syncMapSizeSideInputs();
+  refreshMapSizeFromCenter();
+});
+sizeHeightInput.addEventListener('input', () => {
+  const newH = Math.round(Number(sizeHeightInput.value));
+  if (!Number.isFinite(newH)) return;
+  mapSizeDelta.bottom = newH - mapSizeBase.h - mapSizeDelta.top;
+  syncMapSizeSideInputs();
+  refreshMapSizeFromCenter();
+});
+
+// Rebuilds the grid at the new size, copying existing content across at the
+// (left, top) offset - this naturally adds empty space on edges with a
+// positive delta and crops content on edges with a negative delta. Goes
+// through the normal undo/redo history rather than wiping it, since this is
+// a content-preserving transform rather than starting a fresh map.
+function applyMapSizeChange() {
+  const { w, h, valid } = computeMapSizeResult();
+  if (!valid) return;
+
+  const { top, right, bottom, left } = mapSizeDelta;
+  if (top === 0 && right === 0 && bottom === 0 && left === 0) {
+    closeModals();
+    return; // nothing to change
+  }
+
+  const before = snapshotGrid();
+  const oldCols = grid.cols, oldRows = grid.rows, oldData = grid.data;
+  const newData = new Uint8Array(w * h);
+
+  for (let r = 0; r < h; r++) {
+    const oldR = r - top;
+    if (oldR < 0 || oldR >= oldRows) continue;
+    const newRowBase = r * w;
+    const oldRowBase = oldR * oldCols;
+    for (let c = 0; c < w; c++) {
+      const oldC = c - left;
+      if (oldC < 0 || oldC >= oldCols) continue;
+      newData[newRowBase + c] = oldData[oldRowBase + oldC];
+    }
+  }
+
+  grid.cols = w;
+  grid.rows = h;
+  grid.data = newData;
+  rebuildSpawnLocation();
+  resetViewToFit();
+  clearTransientState();
+  commitAction(before);
+  updateStatusBar();
+  closeModals();
+  requestRender();
+}
+
+document.getElementById('btnMapSize').addEventListener('click', () => {
+  openModal(modalMapSize);
+  openMapSizeModal();
+});
+document.getElementById('btnMapSizeCancel').addEventListener('click', closeModals);
+document.getElementById('btnMapSizeApply').addEventListener('click', applyMapSizeChange);
 
 function resetViewToFit() {
   updateMinZoomForGrid();
@@ -1586,12 +1806,107 @@ function supportsAdvancedExport() {
   return typeof window.showDirectoryPicker === 'function';
 }
 
-// Opens the folder picker as the very first step (before any other async
-// work) so the click's user-activation is still fresh when the browser
-// evaluates the permission prompt, then writes the file directly via the
-// File System Access API.
+/* -------------------------------------------------------------------------
+   Remembering the picked "custom_planets" folder
+   FileSystemDirectoryHandle objects aren't JSON-serializable, so they can't
+   go in localStorage/autosave - but Chromium-based browsers support storing
+   them directly in IndexedDB via structured clone. Persisting the handle
+   there means the user only has to browse to their "custom_planets" folder
+   the first time; every export after that just needs a quick "allow access
+   again" permission check (queryPermission/requestPermission) instead of
+   the full folder picker.
+   ------------------------------------------------------------------------- */
+const HANDLE_DB_NAME = 'pixelMapToolHandles';
+const HANDLE_DB_STORE = 'handles';
+const HANDLE_DB_KEY = 'customPlanetsDir';
+
+function openHandleDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HANDLE_DB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(HANDLE_DB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveRememberedDirHandle(handle) {
+  try {
+    const db = await openHandleDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_DB_STORE, 'readwrite');
+      tx.objectStore(HANDLE_DB_STORE).put(handle, HANDLE_DB_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch (e) {
+    // Non-critical - worst case the user just has to browse to the folder again next time.
+  }
+}
+
+async function loadRememberedDirHandle() {
+  try {
+    const db = await openHandleDb();
+    const handle = await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_DB_STORE, 'readonly');
+      const req = tx.objectStore(HANDLE_DB_STORE).get(HANDLE_DB_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function forgetRememberedDirHandle() {
+  try {
+    const db = await openHandleDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_DB_STORE, 'readwrite');
+      tx.objectStore(HANDLE_DB_STORE).delete(HANDLE_DB_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch (e) {
+    // Non-critical.
+  }
+}
+
+// Must be called from within a user-gesture event handler - requestPermission
+// needs that to show its prompt.
+async function ensureReadWritePermission(handle) {
+  const opts = { mode: 'readwrite' };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  if ((await handle.requestPermission(opts)) === 'granted') return true;
+  return false;
+}
+
+// Tries the remembered folder first (just a permission check, no file
+// browser); falls back to the full picker the first time, or any time the
+// remembered folder turns out to be stale (moved/deleted/revoked).
+async function getCustomPlanetsDirHandle() {
+  const remembered = await loadRememberedDirHandle();
+  if (remembered) {
+    try {
+      if (await ensureReadWritePermission(remembered)) return remembered;
+    } catch (e) {
+      // Stale handle (e.g. the folder was moved or deleted) - fall through to re-picking.
+    }
+    await forgetRememberedDirHandle();
+  }
+
+  const picked = await window.showDirectoryPicker({ id: 'nng-custom-planets', mode: 'readwrite' });
+  saveRememberedDirHandle(picked); // fire-and-forget; not critical if it fails
+  return picked;
+}
+
+// Writes the file directly via the File System Access API, reusing the
+// remembered "custom_planets" folder when possible (see above).
 async function runAdvancedExport(mapName) {
-  const rootHandle = await window.showDirectoryPicker({ id: 'nng-custom-planets', mode: 'readwrite' });
+  const rootHandle = await getCustomPlanetsDirHandle();
 
   if (rootHandle.name.toLowerCase() !== 'custom_planets') {
     const proceed = confirm(
@@ -1687,21 +2002,24 @@ async function decodeImageFileToPixels(file) {
   return { w, h, data };
 }
 
+// Returns true if the map was actually loaded, false if the user cancelled
+// or the file was rejected - callers (the file-input flow, the Map Gallery)
+// use this to know whether to do their own follow-up (e.g. closing a modal).
 async function handleLoadMapFile(file) {
   let decoded;
   try {
     decoded = await decodeImageFileToPixels(file);
   } catch (e) {
     alert('Could not load that file as an image.');
-    return;
+    return false;
   }
   const { w, h, data } = decoded;
 
   if (w * h > MAX_CELLS) {
     alert(`This image is ${w}x${h} (${(w * h).toLocaleString()} pixels), which exceeds the ${MAX_CELLS.toLocaleString()} tile limit.`);
-    return;
+    return false;
   }
-  if (gridHasContent() && !confirm('Loading a map will replace the current canvas. Continue?')) return;
+  if (gridHasContent() && !confirm('Loading a map will replace the current canvas. Continue?')) return false;
 
   createGrid(w, h);
   let unmatchedCount = 0;
@@ -1755,6 +2073,217 @@ async function handleLoadMapFile(file) {
     messages.push(`${duplicateSpawnCount.toLocaleString()} extra "Spawn" pixel(s) were found (only one Spawn is allowed on the map) and were removed, keeping the first one.`);
   }
   if (messages.length) alert(messages.join('\n\n'));
+  return true;
+}
+
+/* =========================================================================
+   MAP GALLERY
+   Browses the example maps that ship in "images/maps/" and lets the user
+   preview, load, or download them - handy starting points or references,
+   not a personal save folder.
+
+   There's no server-side API here to list a folder's contents, so getting
+   the file list is a best-effort, two-step process:
+     1. Look for "images/maps/manifest.json" - a JSON array where each
+        entry is either a plain filename string, or an object with a
+        "file" name and an optional "author" byline shown next to the
+        map's name, e.g.:
+          [
+            { "file": "Example Map #3_map.png", "author": "PixelJunk" },
+            "Hello World_map.png"
+          ]
+        This works on ANY static host (GitHub Pages included) with zero
+        server configuration.
+     2. If there's no manifest, fall back to fetching the folder URL itself
+        and scraping .png links out of the response - this works out of the
+        box on servers that auto-generate a directory listing page (e.g.
+        `python -m http.server`, or Apache/nginx with autoindex on). This
+        path can't supply an author byline.
+   If neither works, the gallery explains this to whoever is maintaining
+   the site instead of silently showing nothing.
+   ========================================================================= */
+const MAPS_GALLERY_DIR = 'images/maps/';
+const mapGalleryList = document.getElementById('mapGalleryList');
+const mapGalleryStatus = document.getElementById('mapGalleryStatus');
+
+function galleryDisplayNameFromFile(filename) {
+  return /_map\.png$/i.test(filename)
+    ? filename.slice(0, filename.length - '_map.png'.length)
+    : filename.replace(/\.png$/i, '');
+}
+
+// Accepts either a plain filename string or a {file, author} object from
+// the manifest and normalizes it to {file, author}, where author is either
+// a non-empty trimmed string or null.
+function normalizeGalleryEntry(item) {
+  if (typeof item === 'string') return { file: item, author: null };
+  if (item && typeof item === 'object' && typeof item.file === 'string') {
+    const author = typeof item.author === 'string' && item.author.trim() ? item.author.trim() : null;
+    return { file: item.file, author };
+  }
+  return null;
+}
+
+async function fetchMapGalleryEntries() {
+  try {
+    const res = await fetch(MAPS_GALLERY_DIR + 'manifest.json', { cache: 'no-store' });
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        const entries = list.map(normalizeGalleryEntry).filter(e => e && /\.png$/i.test(e.file));
+        if (entries.length) return entries;
+      }
+    }
+  } catch (e) {
+    // No manifest (or it's invalid) - fall through to the directory-listing attempt.
+  }
+
+  try {
+    const res = await fetch(MAPS_GALLERY_DIR, { cache: 'no-store' });
+    if (res.ok) {
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const names = Array.from(doc.querySelectorAll('a[href]'))
+        .map(a => decodeURIComponent((a.getAttribute('href') || '').split('/').filter(Boolean).pop() || ''))
+        .filter(n => /\.png$/i.test(n));
+      const unique = Array.from(new Set(names));
+      if (unique.length) return unique.map(file => ({ file, author: null }));
+    }
+  } catch (e) {
+    // No directory listing available either - caller reports this below.
+  }
+
+  return null; // couldn't determine the file list at all
+}
+
+// Guards against a slow, stale fetch finishing after the gallery has been
+// closed/reopened and a newer load already started.
+let galleryLoadToken = 0;
+
+async function loadMapGallery() {
+  const token = ++galleryLoadToken;
+  mapGalleryList.innerHTML = '';
+  mapGalleryStatus.textContent = 'Loading gallery\u2026';
+  mapGalleryStatus.classList.remove('hidden');
+
+  const entries = await fetchMapGalleryEntries();
+  if (token !== galleryLoadToken) return; // superseded by a newer load
+
+  if (entries === null) {
+    mapGalleryStatus.textContent =
+      `The example map gallery isn't set up yet - add a manifest.json file in ` +
+      `"${MAPS_GALLERY_DIR}" (a JSON array of filenames, or {file, author} objects), ` +
+      `or host this tool with a server that provides a directory listing.`;
+    return;
+  }
+  if (entries.length === 0) {
+    mapGalleryStatus.textContent = 'No example maps are available right now.';
+    return;
+  }
+
+  mapGalleryStatus.classList.add('hidden');
+
+  const sorted = entries.slice().sort((a, b) =>
+    galleryDisplayNameFromFile(a.file).localeCompare(galleryDisplayNameFromFile(b.file), undefined, { sensitivity: 'base' })
+  );
+
+  for (const entry of sorted) {
+    mapGalleryList.appendChild(buildGalleryRow(entry));
+  }
+}
+
+function buildGalleryRow(entry) {
+  const filename = entry.file;
+  const url = MAPS_GALLERY_DIR + filename.split('/').map(encodeURIComponent).join('/');
+  const displayName = galleryDisplayNameFromFile(filename);
+
+  const row = document.createElement('div');
+  row.className = 'galleryRow';
+
+  const thumbWrap = document.createElement('div');
+  thumbWrap.className = 'galleryThumbWrap';
+  const img = document.createElement('img');
+  img.className = 'galleryThumb';
+  img.src = url;
+  img.alt = displayName;
+  img.loading = 'lazy';
+  img.addEventListener('error', () => {
+    thumbWrap.innerHTML = '';
+    const fallback = document.createElement('div');
+    fallback.className = 'galleryThumbFallback';
+    fallback.textContent = '?';
+    fallback.title = 'Preview image failed to load';
+    thumbWrap.appendChild(fallback);
+  });
+  thumbWrap.appendChild(img);
+
+  const info = document.createElement('div');
+  info.className = 'galleryInfo';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'galleryName';
+  nameEl.textContent = displayName;
+  if (entry.author) {
+    const authorEl = document.createElement('span');
+    authorEl.className = 'galleryAuthor';
+    authorEl.textContent = ` by ${entry.author}`;
+    nameEl.appendChild(authorEl);
+  }
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'galleryButtons';
+
+  const loadBtn = document.createElement('button');
+  loadBtn.className = 'btn small';
+  loadBtn.textContent = 'Load';
+  loadBtn.title = `Load "${displayName}" into the map creator`;
+  loadBtn.addEventListener('click', () => loadGalleryMap(url, displayName));
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'btn small';
+  dlBtn.textContent = 'Download';
+  dlBtn.title = `Download "${filename}"`;
+  dlBtn.addEventListener('click', () => downloadGalleryMap(url, filename));
+
+  btnRow.appendChild(loadBtn);
+  btnRow.appendChild(dlBtn);
+  info.appendChild(nameEl);
+  info.appendChild(btnRow);
+
+  row.appendChild(thumbWrap);
+  row.appendChild(info);
+  return row;
+}
+
+// Loading from the gallery reuses handleLoadMapFile() - the same exact-color
+// decoding, size checks, and "replace current canvas?" confirmation used by
+// the regular Load Map button - since a fetched image Blob works exactly
+// like the File object that flow normally receives.
+async function loadGalleryMap(url, displayName) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const blob = await res.blob();
+    const loaded = await handleLoadMapFile(blob);
+    if (loaded) {
+      mapNameInput.value = displayName;
+      state.mapName = displayName;
+      autosave();
+      closeModals();
+    }
+  } catch (e) {
+    console.error(e);
+    alert(`Failed to load "${displayName}" from the gallery.`);
+  }
+}
+
+function downloadGalleryMap(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /* =========================================================================
